@@ -9,24 +9,25 @@ edr(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05)
 \arguments{
 \item{x}{\verb{[numeric]} - A vector of case numbers.}
 
-\item{window}{\verb{[integer(1)]} - An integer denoting the window size.}
+\item{window}{\verb{[integer(1)]} - An integer denoting the window size. \cr
+Default is \code{1}.}
 
-\item{na_rm}{\verb{[logical(1)]} - Should \code{NA} values be ignored?
+\item{na_rm}{\verb{[logical(1)]} - Should \code{NA} values be ignored? \cr
 Default is \code{FALSE}.}
 
 \item{simulations}{\verb{[numeric(1)]} - Number of Poisson simulations for
 both the numerator and denominator. \cr
-If simulations is 0 then the result is
-a numeric vector, otherwise a matrix of the estimate,
+If simulations is 0 (the default) then the result is
+a numeric vector, otherwise a data frame of the estimate,
 lower confidence interval and upper confidence interval
-are returned.}
+is returned.}
 
-\item{alpha}{\verb{[numeric(1)]} - Alpha significance level.
+\item{alpha}{\verb{[numeric(1)]} - Alpha significance level. \cr
 The default is a 95\% (1 - 0.05) confidence interval.}
 }
 \value{
 A numeric vector of edr estimates when \code{simulations} is 0, otherwise
-a 3-col matrix of estimates, lower and upper confidence intervals.
+a 3-col \code{data.frame} of estimates, lower and upper confidence intervals.
 }
 \description{
 Estimated Dissemination Ratio
@@ -46,9 +47,11 @@ divided by the number of cases in week 1 (days 1 to 7).
 You then apply this on a rolling basis, e.g. the number of cases between
 days 9 to 15 divided by the number of cases between days 2 to 8, and so on.
 
-A ratio above 1 signifies the cases have increased in
-the current time period relative to the previous one.
-A ratio below 1 signifies the cases have decreased in
+A ratio \bold{equal to} 1 signifies the cases have remained stable in
+the current time period relative to the previous one. \cr
+A ratio \bold{above} 1 signifies the cases have increased in
+the current time period relative to the previous one.\cr
+A ratio \bold{below} 1 signifies the cases have decreased in
 the current time period relative to the previous one.
 }
 
@@ -77,10 +80,10 @@ plot(cases$date_of_onset, cases$edr,
      xlab = "Date of onset",
      ylab = "EDR")
 abline(h = 1, lty = 2, lwd = 2, col = "purple")
-lines(cases$date_of_onset, 
+lines(cases$date_of_onset,
       fitted(loess(cases$edr ~ as.numeric(cases$date_of_onset))),
       lwd = 4, col = "blue")
-title(main = "Cases above purple line are increasing 
+title(main = "Cases above purple line are increasing
 from week to week.\nCases below are decreasing.")
 }
 \references{
