@@ -133,7 +133,7 @@ edr <- function(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05){
       }
       j <- 1L
       for (i in start:end){
-        quantile_sim <- collapse::fquantile(sims[j, ], probs, 
+        quantiles_sim <- collapse::fquantile(sims[j, ], probs, 
                                             type = 7L, names = FALSE)
         lcl[i] <- quantiles_sim[1L]
         ucl[i] <- quantiles_sim[2L]
