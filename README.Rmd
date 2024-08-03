@@ -23,7 +23,7 @@ knitr::opts_chunk$set(
 This package is a fast implementation of the Estimated Dissemination Ratio, 
 described here
 
-[Estimated Dissemination Ratio—A Practical Alternative to the Reproduction Number for Infectious Diseases](dx.doi.org/10.3389/fpubh.2021.675065)
+[Estimated Dissemination Ratio—A Practical Alternative to the Reproduction Number for Infectious Diseases](http://dx.doi.org/10.3389/fpubh.2021.675065)
 
 ## Installation
 

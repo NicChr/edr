@@ -13,7 +13,7 @@ Ratio, described here
 
 [Estimated Dissemination Ratio—A Practical Alternative to the
 Reproduction Number for Infectious
-Diseases](dx.doi.org/10.3389/fpubh.2021.675065)
+Diseases](http://dx.doi.org/10.3389/fpubh.2021.675065)
 
 ## Installation
 
