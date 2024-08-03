@@ -11,12 +11,15 @@ edr(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05)
 
 \item{window}{\verb{[integer(1)]} - An integer denoting the window size.}
 
-\item{na_rm}{\verb{[logical(1)]} - Should \code{NA} values be ignored? Default is \code{FALSE}.}
+\item{na_rm}{\verb{[logical(1)]} - Should \code{NA} values be ignored?
+Default is \code{FALSE}.}
 
-\item{simulations}{\verb{[numeric(1)]} - Number of poisson simulations for
-both the numerator and denominator. If simulations is 0 then the result is
-a numeric vector, otherwise a matrix of the estimate, lower confidence interval
-and upper confidence interval are returnd.}
+\item{simulations}{\verb{[numeric(1)]} - Number of Poisson simulations for
+both the numerator and denominator. \cr
+If simulations is 0 then the result is
+a numeric vector, otherwise a matrix of the estimate,
+lower confidence interval and upper confidence interval
+are returned.}
 
 \item{alpha}{\verb{[numeric(1)]} - Alpha significance level.
 The default is a 95\% (1 - 0.05) confidence interval.}
@@ -29,12 +32,60 @@ a 3-col matrix of estimates, lower and upper confidence intervals.
 Estimated Dissemination Ratio
 }
 \details{
+\subsection{Ratio}{
+
+EDR is a simple ratio calculated as the number of cases in a time interval,
+divided by the number of cases in a preceding time interval
+of the same width.
+Therefore it is easy to produce, both conceptually and computationally,
+making it a useful metric in analysing epidemic curves.
+
+For example, to calculate the 7-day EDR, the first ratio would be
+the number of cases in week 2 (days 8 to 14),
+divided by the number of cases in week 1 (days 1 to 7).
+You then apply this on a rolling basis, e.g. the number of cases between
+days 9 to 15 divided by the number of cases between days 2 to 8, and so on.
+
+A ratio above 1 signifies the cases have increased in
+the current time period relative to the previous one.
+A ratio below 1 signifies the cases have decreased in
+the current time period relative to the previous one.
+}
+
 \subsection{Confidence intervals}{
 
-To generate confidence intervals, simply specify
-a \code{simulations} value greater than 0.
+Confidence intervals are calculated by assuming the cases across both
+intervals are Poisson distributed random variables.
+Random deviates are then generated for each and ratios are calculated
+across these two sets. Percentile confidence intervals are produced
+by taking the \code{alpha/2} and \code{1 - (alpha/2)} percentiles of the ratios.
 }
+}
+\examples{
+library(edr)
+library(outbreaks)
+library(data.table)
+
+ebola <- as.data.table(ebola_sim_clean$linelist)
+cases <- ebola[, .(n = .N), keyby = date_of_onset]
+
+cases[, edr := edr(n, window = 7)]
+
+cases <- cases[-(1:13)] # EDR starts at time = 2 * window
+
+plot(cases$date_of_onset, cases$edr,
+     xlab = "Date of onset",
+     ylab = "EDR")
+abline(h = 1, lty = 2, lwd = 2, col = "purple")
+lines(cases$date_of_onset, 
+      fitted(loess(cases$edr ~ as.numeric(cases$date_of_onset))),
+      lwd = 4, col = "blue")
+title(main = "Cases above purple line are increasing 
+from week to week.\nCases below are decreasing.")
 }
 \references{
-Perez-Reche FJ, Taylor N, McGuigan C, Conaglen P, Forbes K, Strachan N, Honhold N (2021) Estimated Dissemination Ratio --- A practical alternative to the reproduction number for infectious diseases. Frontiers in Public Health 9. DOI:  10.3389/fpubh.2021.675065.
+Perez-Reche FJ, Taylor N, McGuigan C, Conaglen P, Forbes K, Strachan N,
+Honhold N (2021) Estimated Dissemination Ratio ---
+A practical alternative to the reproduction number for infectious diseases.
+Frontiers in Public Health 9. DOI:  10.3389/fpubh.2021.675065.
 }

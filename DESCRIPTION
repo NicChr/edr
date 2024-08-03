@@ -4,7 +4,10 @@ Version: 0.0.0.9000
 Authors@R: 
     person("Nick", "Christofides", , "nick.christofides.r@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9743-7342"))
-Description: An R implementation of the Estimated Dissemination Ratio, a practical alternative to the reproduction number for infectious diseases.
+Description: An R implementation of the Estimated Dissemination Ratio, a
+    practical alternative to the reproduction number for infectious
+    diseases, described in Pérez-Reche et al., (2021)
+    <doi:10.3389/fpubh.2021.675065>.
 License: MIT + file LICENSE
 Depends:
     R (>= 3.5.0)
@@ -12,6 +15,7 @@ Imports:
     collapse,
     data.table
 Suggests:
+    outbreaks,
     testthat (>= 3.0.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
