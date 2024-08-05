@@ -90,9 +90,9 @@ edr <- function(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05){
   
   # Start of confint loop
   
-  start <- window * 2L
+  start <- as.integer(window) * 2L
   end <- N
-  confint_length <- max(N - start + 1, 0)
+  confint_length <- max(N - start + 1L, 0L)
   
   if (simulations <= 0){
     return(edr_est)
@@ -106,41 +106,28 @@ edr <- function(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05){
   # Confidence interval calculation
   
   if (simulations > 0 && N >= start){
-    
+
     lcl <- rep_len(NA_real_, N)
     ucl <- lcl
-    
-    # If we have relatively little data compared to sims we loop through x
-    # Otherwise we loop through sims
-    
-    if (N <= (simulations * 10)){
+
+    # All simulations at once
+    if ( (confint_length * simulations) <= 1e08 ){
+      iss <- start:end
+      g <- rep.int(seq_len(confint_length), simulations)
+      edr_sim <- stats::rpois(simulations * confint_length, top[iss]) /
+        stats::rpois(simulations * confint_length, bottom[iss])
+      lcl[iss] <- collapse::fnth(edr_sim, lower_prob, g = g, use.g.names = FALSE)
+      ucl[iss] <- collapse::fnth(edr_sim, upper_prob, g = g, use.g.names = FALSE)
+    } else {
       for (i in start:end){
-        edr_sim <- stats::rpois(simulations, top[i]) / 
+        edr_sim <- stats::rpois(simulations, top[i]) /
           stats::rpois(simulations, bottom[i])
-        quantiles_sim <- collapse::fquantile(edr_sim, probs, 
+        quantiles_sim <- collapse::fquantile(edr_sim, probs,
                                              type = 7L, names = FALSE)
         lcl[i] <- quantiles_sim[1L]
         ucl[i] <- quantiles_sim[2L]
       }
-    } else {
-      sims <- matrix(numeric(confint_length * simulations), ncol = simulations)
-      tops <- top[start:end]
-      bottoms <- bottom[start:end]
-      
-      for (i in seq_len(simulations)){
-        sims[, i] <- stats::rpois(confint_length, tops) / 
-          stats::rpois(confint_length, bottoms)
-      }
-      j <- 1L
-      for (i in start:end){
-        quantiles_sim <- collapse::fquantile(sims[j, ], probs, 
-                                            type = 7L, names = FALSE)
-        lcl[i] <- quantiles_sim[1L]
-        ucl[i] <- quantiles_sim[2L]
-        j <- j + 1L
-      }
     }
-    
   }
   data.frame(est = edr_est, lower = lcl, upper = ucl)
 }
