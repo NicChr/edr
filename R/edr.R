@@ -98,17 +98,17 @@ edr <- function(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05){
     return(edr_est)
   }
   
+  # Confidence interval calculation
+  
   check_alpha(alpha)
   lower_prob <- alpha / 2
   upper_prob <- 1 - lower_prob
   probs <- c(lower_prob, upper_prob)
   
-  # Confidence interval calculation
+  lcl <- rep_len(NA_real_, N)
+  ucl <- lcl
   
   if (simulations > 0 && N >= start){
-
-    lcl <- rep_len(NA_real_, N)
-    ucl <- lcl
 
     # All simulations at once
     if ( (confint_length * simulations) <= 1e08 ){
