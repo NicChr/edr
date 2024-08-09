@@ -82,10 +82,7 @@ edr <- function(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05){
   # EDR
   
   top <- data.table::frollsum(x, n = window, align = "right", na.rm = na_rm)
-  bottom <- data.table::frollsum(
-    data.table::shift(x, n = window, type = "lag"), 
-    n = window, align = "right", na.rm = na_rm
-  )
+  bottom <- data.table::shift(top, n = window, type = "lag")
   edr_est <- top / bottom
   
   # Start of confint loop
