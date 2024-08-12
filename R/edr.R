@@ -75,20 +75,21 @@
 #' @export
 edr <- function(x, window = 1, order_by = NULL, 
                 na_rm = FALSE, simulations = 0, alpha = 0.05){
-  
+  if (!is.numeric(x)){
+    stop("x must be a numeric vector of case counts")
+  }
   N <- length(x)
   o <- NULL
-  reorder <- FALSE
-  time <- NULL
   
   if (!is.null(order_by)){
     time <- order_by
     if (!is_sorted(time)){
-      message("order_by is not in chronological order, edr will be calculated using `order(order_by)`")
       o <- order(time)
       x <- x[o]
-      reorder <- TRUE
+      time <- time[o]
     }
+  } else {
+   time <- seq_along(x) 
   }
   
   # EDR
@@ -138,13 +139,6 @@ edr <- function(x, window = 1, order_by = NULL,
       }
     }
   }
-  if (reorder){
-    o2 <- order(o)
-    x <- x[o2]
-    edr_est <- edr_est[o2]
-    lcl <- lcl[o2]
-    ucl <- ucl[o2]
-  }
   out <- data.table::data.table(
     time = time,
     cases = x,
@@ -152,24 +146,9 @@ edr <- function(x, window = 1, order_by = NULL,
     lower = lcl,
     upper = ucl
   )
-  data.table::setattr(out, ".time.sorted", !reorder)
+  data.table::setkeyv(out, "time")
   data.table::setattr(out, "class", c("edr", class(out)))
-  # lock_dt(out)
   out
-  
-  # out <- data.frame()
-  # attr(out, "row.names") <- .set_row_names(N)
-  # out[["time"]] <- time
-  # out[["cases"]] <- x
-  # out[["edr"]] <- edr_est
-  # out[["lower"]] <- lcl
-  # out[["upper"]] <- ucl
-
-  # attr(edr_est, "cases") <- x
-  # attr(edr_est, "time") <- time
-  # attr(edr_est, "lower") <- lcl
-  # attr(edr_est, "upper") <- ucl
-  # out
 }
 edr_metrics <- function(x, window = 1, na_rm = FALSE){
   top <- data.table::frollsum(x, n = window, align = "right", na.rm = na_rm)

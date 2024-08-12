@@ -37,9 +37,6 @@ plot.edr <- function(x, include_cases = TRUE, ...){
   # mean_edr <- mean(plot_data[["edr"]][is.finite(plot_data[["edr"]])], na.rm = TRUE)
   # scale_factor <- mean_cases / mean_edr
   
-  if (is.null(plot_data[["time"]])){
-    plot_data[["time"]] <- seq_len(nrow(plot_data))
-  }
   edr_plot <- ggplot2::ggplot(plot_data, ggplot2::aes(x = .data[["time"]], 
                                                       y = .data[["edr"]])) +
     ggplot2::geom_line() +
@@ -57,7 +54,7 @@ plot.edr <- function(x, include_cases = TRUE, ...){
       breaks = scales::extended_breaks(n = 10),
       # transform = if (!include_cases) "log2" else "identity",
       sec.axis = if (include_cases){
-        ggplot2::sec_axis(function(x) x * scale_factor, 
+        ggplot2::sec_axis(function(x) x * scale_factor,
                           name = "Cases",
                           breaks = scales::extended_breaks(n = 10))
       } else {
@@ -78,9 +75,3 @@ plot.edr <- function(x, include_cases = TRUE, ...){
   
   edr_plot
 }
-# lock_dt <- function(x){
-#  data.table::setattr(x, ".data.table.locked", TRUE)
-# }
-# unlock_dt <- function(x){
-#   data.table::setattr(x, ".data.table.locked", FALSE)
-# }
