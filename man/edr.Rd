@@ -2,15 +2,29 @@
 % Please edit documentation in R/edr.R
 \name{edr}
 \alias{edr}
+\alias{edr_only}
 \title{Estimated Dissemination Ratio}
 \usage{
-edr(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05)
+edr(
+  x,
+  window = 1,
+  order_by = NULL,
+  na_rm = FALSE,
+  simulations = 0,
+  alpha = 0.05
+)
+
+edr_only(x, window = 1, na_rm = FALSE)
 }
 \arguments{
 \item{x}{\verb{[numeric]} - A vector of case numbers.}
 
 \item{window}{\verb{[integer(1)]} - An integer denoting the window size. \cr
 Default is \code{1}.}
+
+\item{order_by}{An optional time index (e.g. date vector) to use.
+This will ensure EDR estimates are calculated in the correct order. It
+will also be used in the x-axis when calling \code{plot.edr()}.}
 
 \item{na_rm}{\verb{[logical(1)]} - Should \code{NA} values be ignored? \cr
 Default is \code{FALSE}.}
@@ -26,8 +40,9 @@ is returned.}
 The default is a 95\% (1 - 0.05) confidence interval.}
 }
 \value{
-A numeric vector of edr estimates when \code{simulations} is 0, otherwise
-a 3-col \code{data.frame} of estimates, lower and upper confidence intervals.
+\code{edr()} returns a \code{data.table} of case counts and EDR estimates,
+optionally along with a user-supplied time index, and confidence intervals. \cr
+\code{edr_only()} returns \bold{only} the EDR estimates as a numeric vector. \cr
 }
 \description{
 Estimated Dissemination Ratio
@@ -68,23 +83,15 @@ by taking the \code{alpha/2} and \code{1 - (alpha/2)} percentiles of the ratios.
 library(edr)
 library(outbreaks)
 library(data.table)
+library(ggplot2)
 
 ebola <- as.data.table(ebola_sim_clean$linelist)
 cases <- ebola[, .(n = .N), keyby = date_of_onset]
 
-cases[, edr := edr(n, window = 7)]
+edr <- cases[, edr(n, order_by = date_of_onset, window = 7)]
 
-cases <- cases[-(1:13)] # EDR starts at time = 2 * window
-
-plot(cases$date_of_onset, cases$edr,
-     xlab = "Date of onset",
-     ylab = "EDR")
-abline(h = 1, lty = 2, lwd = 2, col = "purple")
-lines(cases$date_of_onset,
-      fitted(loess(cases$edr ~ as.numeric(cases$date_of_onset))),
-      lwd = 4, col = "blue")
-title(main = "Cases above purple line are increasing
-from week to week.\nCases below are decreasing.")
+plot(edr) +
+  geom_smooth(se = FALSE)
 }
 \references{
 Perez-Reche FJ, Taylor N, McGuigan C, Conaglen P, Forbes K, Strachan N,

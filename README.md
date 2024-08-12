@@ -44,44 +44,113 @@ data(uk_covid_cases)
 setDT(uk_covid_cases)
 ```
 
+### Some technical notes
+
+`edr()` returns a `data.table` with class ‘edr’
+
+``` r
+temp <- edr(uk_covid_cases$new, 7)
+temp
+#>      cases       edr
+#>      <int>     <num>
+#>   1:     0        NA
+#>   2:     0        NA
+#>   3:     0        NA
+#>   4:     0        NA
+#>   5:     0        NA
+#>  ---                
+#> 432:  3947 0.9566844
+#> 433:  4784 0.9337753
+#> 434:  4069 0.8977741
+#> 435:  4115 0.8625097
+#> 436:  4565 0.8194020
+```
+
+``` r
+class(temp)
+#> [1] "edr"        "data.table" "data.frame"
+```
+
+If you want just the edr estimates as a regular vector you can use
+`edr_only()`
+
+``` r
+temp[, edr2 := edr_only(cases, 7)][]
+#>      cases       edr      edr2
+#>      <int>     <num>     <num>
+#>   1:     0        NA        NA
+#>   2:     0        NA        NA
+#>   3:     0        NA        NA
+#>   4:     0        NA        NA
+#>   5:     0        NA        NA
+#>  ---                          
+#> 432:  3947 0.9566844 0.9566844
+#> 433:  4784 0.9337753 0.9337753
+#> 434:  4069 0.8977741 0.8977741
+#> 435:  4115 0.8625097 0.8625097
+#> 436:  4565 0.8194020 0.8194020
+```
+
+``` r
+
+rm(temp) # Remove temp
+```
+
 ### EDR calculation
 
 Here we calculate the 7-day EDR with `edr()` along with 99% percentile
 confidence intervals
 
 ``` r
-edr_seven_day <- edr(uk_covid_cases$new, window = 7, simulations = 1e04, alpha = 0.01)
-
-# Join estimates and confint to data
-uk_covid_cases <- cbind(uk_covid_cases, edr_seven_day)
+edr_seven_day <- uk_covid_cases[, edr(new, window = 7, order_by = reporting_date,
+                                     simulations = 1e04, alpha = 0.01)]
 ```
 
 We also calculate the 7-day rolling average of new confirmed cases
 
 ``` r
-uk_covid_cases[, ma7 := frollmean(new, n = 7, align = "right")]
+edr_seven_day[, ma7 := frollmean(cases, n = 7, align = "right")][]
+#>            time cases       edr     lower     upper      ma7
+#>          <Date> <int>     <num>     <num>     <num>    <num>
+#>   1: 2020-01-22     0        NA        NA        NA       NA
+#>   2: 2020-01-23     0        NA        NA        NA       NA
+#>   3: 2020-01-24     0        NA        NA        NA       NA
+#>   4: 2020-01-25     0        NA        NA        NA       NA
+#>   5: 2020-01-26     0        NA        NA        NA       NA
+#>  ---                                                        
+#> 432: 2021-03-28  3947 0.9566844 0.9389550 0.9751093 5259.714
+#> 433: 2021-03-29  4784 0.9337753 0.9166344 0.9514520 5170.714
+#> 434: 2021-03-30  4069 0.8977741 0.8806773 0.9155909 4978.286
+#> 435: 2021-03-31  4115 0.8625097 0.8458121 0.8793684 4762.286
+#> 436: 2021-04-01  4565 0.8194020 0.8036907 0.8355153 4517.714
 ```
 
 Finally plotting everything
 
 ``` r
-uk_covid_cases <- uk_covid_cases[
-  reporting_date >= as.Date("2020-03-10") & 
-    reporting_date < as.Date("2020-05-01")]
+edr_seven_day <- edr_seven_day[
+  time >= as.Date("2020-03-10") & 
+    time < as.Date("2020-05-01")]
 
 scale_factor <- 500
-# You could also calculate it more generally as below 
-# scale_factor <- max(uk_covid_cases$ma7) / max(uk_covid_cases$est)
 uk_lockdown <- as.Date("2020-03-24")
+```
 
-edr_plot <- uk_covid_cases |> 
-  ggplot(aes(x = reporting_date, y = est)) + 
-  geom_col(aes(y = ma7 / scale_factor), width = 1, alpha = 0.6, fill = "lightblue") +
-  geom_smooth(aes(y = est, ymin = lower, ymax = upper), 
-              stat = "identity", 
-              linewidth = 1.25, 
-              col = "black") +
-  geom_hline(yintercept = 1, linetype = "dashed") +
+There is a convenient plot method for edr objects defined in
+`plot.edr()`.
+
+``` r
+edr_plot <- plot(edr_seven_day, include_cases = FALSE)
+edr_plot
+```
+
+<img src="man/figures/README-unnamed-chunk-10-1.png" width="100%" />
+
+We just need to add a few things to recreate the figure
+
+``` r
+edr_plot +
+  geom_col(aes(y = ma7 / scale_factor), width = 1, alpha = 0.4, fill = "#0077B6") +
   geom_segment(aes(x = uk_lockdown, y = 6, xend = uk_lockdown, yend = 3.25),
                arrow = arrow(length = unit(0.5, "cm"))) +
   annotate("text", x = uk_lockdown, y = 6, 
@@ -94,16 +163,16 @@ edr_plot <- uk_covid_cases |>
                                          breaks = seq(0, 5000, 500),
                                          name = "UK new case 7-day rolling average")) +
   theme_bw() + 
-  theme(axis.line.y.right = element_line(color = "lightblue"), 
-        axis.ticks.y.right = element_line(color = "lightblue"),
-        axis.text.y.right = element_text(color = "lightblue"), 
-        axis.title.y.right = element_text(color = "lightblue")
+  theme(axis.line.y.right = element_line(color = "#0077B6"), 
+        axis.ticks.y.right = element_line(color = "#0077B6"),
+        axis.text.y.right = element_text(color = "#0077B6"), 
+        axis.title.y.right = element_text(color = "#0077B6")
   )
-
-edr_plot
+#> Scale for y is already present.
+#> Adding another scale for y, which will replace the existing scale.
 #> Warning in geom_segment(aes(x = uk_lockdown, y = 6, xend = uk_lockdown, : All aesthetics have length 1, but the data has 52 rows.
 #> ℹ Please consider using `annotate()` or provide this layer with data containing
 #>   a single row.
 ```
 
-<img src="man/figures/README-unnamed-chunk-7-1.png" width="100%" />
+<img src="man/figures/README-unnamed-chunk-11-1.png" width="100%" />

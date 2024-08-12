@@ -3,6 +3,10 @@
 #' @param x `[numeric]` - A vector of case numbers.
 #' @param window `[integer(1)]` - An integer denoting the window size. \cr
 #' Default is `1`.
+#' @param order_by An optional time index (e.g. date vector) to use.
+#' This will ensure EDR estimates are calculated in the correct order. It
+#' will also be used in the x-axis when calling `plot.edr()`.
+#' 
 #' @param na_rm `[logical(1)]` - Should `NA` values be ignored? \cr
 #' Default is `FALSE`.
 #' @param simulations `[numeric(1)]` - Number of Poisson simulations for
@@ -15,9 +19,10 @@
 #' The default is a 95% (1 - 0.05) confidence interval.
 #'
 #' @returns
-#' A numeric vector of edr estimates when `simulations` is 0, otherwise
-#' a 3-col `data.frame` of estimates, lower and upper confidence intervals.
-#'
+#' `edr()` returns a `data.table` of case counts and EDR estimates, 
+#' optionally along with a user-supplied time index, and confidence intervals. \cr
+#' `edr_only()` returns \bold{only} the EDR estimates as a numeric vector. \cr
+#' 
 #' @details
 #'
 #' ### Ratio
@@ -57,43 +62,47 @@
 #' library(edr)
 #' library(outbreaks)
 #' library(data.table)
+#' library(ggplot2)
 #' 
 #' ebola <- as.data.table(ebola_sim_clean$linelist)
 #' cases <- ebola[, .(n = .N), keyby = date_of_onset]
 #' 
-#' cases[, edr := edr(n, window = 7)]
+#' edr <- cases[, edr(n, order_by = date_of_onset, window = 7)]
 #' 
-#' cases <- cases[-(1:13)] # EDR starts at time = 2 * window
-#' 
-#' plot(cases$date_of_onset, cases$edr,
-#'      xlab = "Date of onset",
-#'      ylab = "EDR")
-#' abline(h = 1, lty = 2, lwd = 2, col = "purple")
-#' lines(cases$date_of_onset,
-#'       fitted(loess(cases$edr ~ as.numeric(cases$date_of_onset))),
-#'       lwd = 4, col = "blue")
-#' title(main = "Cases above purple line are increasing
-#' from week to week.\nCases below are decreasing.")
+#' plot(edr) +
+#'   geom_smooth(se = FALSE)
+#' @rdname edr
 #' @export
-edr <- function(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05){
+edr <- function(x, window = 1, order_by = NULL, 
+                na_rm = FALSE, simulations = 0, alpha = 0.05){
   
   N <- length(x)
+  o <- NULL
+  reorder <- FALSE
+  time <- NULL
+  
+  if (!is.null(order_by)){
+    time <- order_by
+    if (!is_sorted(time)){
+      message("order_by is not in chronological order, edr will be calculated using `order(order_by)`")
+      o <- order(time)
+      x <- x[o]
+      reorder <- TRUE
+    }
+  }
   
   # EDR
   
-  top <- data.table::frollsum(x, n = window, align = "right", na.rm = na_rm)
-  bottom <- data.table::shift(top, n = window, type = "lag")
-  edr_est <- top / bottom
+  edr_list <- edr_metrics(x, window = window, na_rm = na_rm)
+  top <- edr_list[["top"]]
+  bottom <- edr_list[["bottom"]]
+  edr_est <- edr_list[["edr"]]
   
   # Start of confint loop
   
   start <- as.integer(window) * 2L
   end <- N
   confint_length <- max(N - start + 1L, 0L)
-  
-  if (simulations <= 0){
-    return(edr_est)
-  }
   
   # Confidence interval calculation
   
@@ -102,11 +111,14 @@ edr <- function(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05){
   upper_prob <- 1 - lower_prob
   probs <- c(lower_prob, upper_prob)
   
-  lcl <- rep_len(NA_real_, N)
-  ucl <- lcl
+  lcl <- NULL
+  ucl <- NULL
   
   if (simulations > 0 && N >= start){
-
+    
+    lcl <- rep_len(NA_real_, N)
+    ucl <- lcl
+    
     # All simulations at once
     if ( (confint_length * simulations) <= 1e08 ){
       iss <- start:end
@@ -126,9 +138,52 @@ edr <- function(x, window = 1, na_rm = FALSE, simulations = 0, alpha = 0.05){
       }
     }
   }
-  data.frame(est = edr_est, lower = lcl, upper = ucl)
-}
+  if (reorder){
+    o2 <- order(o)
+    x <- x[o2]
+    edr_est <- edr_est[o2]
+    lcl <- lcl[o2]
+    ucl <- ucl[o2]
+  }
+  out <- data.table::data.table(
+    time = time,
+    cases = x,
+    edr = edr_est,
+    lower = lcl,
+    upper = ucl
+  )
+  data.table::setattr(out, ".time.sorted", !reorder)
+  data.table::setattr(out, "class", c("edr", class(out)))
+  # lock_dt(out)
+  out
+  
+  # out <- data.frame()
+  # attr(out, "row.names") <- .set_row_names(N)
+  # out[["time"]] <- time
+  # out[["cases"]] <- x
+  # out[["edr"]] <- edr_est
+  # out[["lower"]] <- lcl
+  # out[["upper"]] <- ucl
 
+  # attr(edr_est, "cases") <- x
+  # attr(edr_est, "time") <- time
+  # attr(edr_est, "lower") <- lcl
+  # attr(edr_est, "upper") <- ucl
+  # out
+}
+edr_metrics <- function(x, window = 1, na_rm = FALSE){
+  top <- data.table::frollsum(x, n = window, align = "right", na.rm = na_rm)
+  bottom <- data.table::shift(top, n = window, type = "lag")
+  list(top = top, bottom = bottom, edr = top / bottom)
+}
+#' @rdname edr
+#' @export
+edr_only <- function(x, window = 1, na_rm = FALSE){
+  edr_metrics(x, window = window, na_rm = na_rm)[["edr"]]
+}
+is_sorted <- function(x){
+  isTRUE(!is.unsorted(x))
+}
 check_alpha <- function(x){
   stopifnot(is.numeric(x) && length(x) == 1 && x >= 0 && x <= 1)
 }
