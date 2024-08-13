@@ -83,6 +83,9 @@ edr <- function(x, window = 1, order_by = NULL,
   o <- NULL
   
   if (!is.null(order_by)){
+    if (length(order_by) != N){
+      stop("length(order_by) must match length(x)")
+    }
     time <- order_by
     if (!is_sorted(time)){
       o <- order(time)
