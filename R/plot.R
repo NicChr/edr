@@ -20,6 +20,8 @@
 #' @exportS3Method base::plot
 #' @export plot.edr
 plot.edr <- function(x, include_cases = TRUE, ...){
+  check_valid_edr(x)
+  
   plot_data <- x
   
   indigo <- "#0077B6"
@@ -62,7 +64,10 @@ plot.edr <- function(x, include_cases = TRUE, ...){
       }
     )
   if (include_cases){
+    
     # Smallest difference between time points
+    # This will determine geom_col bar width
+    
     t <- as.double(plot_data[["time"]])
     d <- diff2(t)
     bar_width <- min(d[which(d > sqrt(.Machine$double.eps))])
@@ -85,3 +90,4 @@ plot.edr <- function(x, include_cases = TRUE, ...){
   
   edr_plot
 }
+

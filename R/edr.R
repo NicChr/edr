@@ -17,6 +17,7 @@
 #' is returned.
 #' @param alpha `[numeric(1)]` - Alpha significance level. \cr
 #' The default is a 95% (1 - 0.05) confidence interval.
+#' @param ... Arguments passed onto `print.edr`.
 #'
 #' @returns
 #' `edr()` returns a `data.table` of case counts and EDR estimates, 
@@ -99,6 +100,7 @@ edr <- function(x, window = 1, order_by = NULL,
   bottom <- edr_list[["bottom"]]
   edr_est <- edr_list[["edr"]]
   
+  
   # Start of confint loop
   
   start <- as.integer(window) * 2L
@@ -153,12 +155,28 @@ edr <- function(x, window = 1, order_by = NULL,
 edr_metrics <- function(x, window = 1, na_rm = FALSE){
   top <- data.table::frollsum(x, n = window, align = "right", na.rm = na_rm)
   bottom <- data.table::shift(top, n = window, type = "lag")
-  list(top = top, bottom = bottom, edr = top / bottom)
+  edr <- top / bottom
+  
+  edr[which(edr == Inf)] <- NA
+  
+  list(top = top, bottom = bottom, edr = edr)
 }
 #' @rdname edr
 #' @export
 edr_only <- function(x, window = 1, na_rm = FALSE){
   edr_metrics(x, window = window, na_rm = na_rm)[["edr"]]
+}
+#' @rdname edr
+#' @exportS3Method base::print
+#' @export print.edr
+print.edr <- function(x, ...){
+  check_valid_edr(x)
+  NextMethod("print")
+}
+check_valid_edr <- function(x){
+  if (!all(c("time", "cases", "edr") %in% names(x))){
+    stop("edr object must have 3 variables labelled 'time', 'cases' and 'edr'")
+  }
 }
 is_sorted <- function(x){
   isTRUE(!is.unsorted(x))

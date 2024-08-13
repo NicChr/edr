@@ -3,6 +3,7 @@
 \name{edr}
 \alias{edr}
 \alias{edr_only}
+\alias{print.edr}
 \title{Estimated Dissemination Ratio}
 \usage{
 edr(
@@ -15,6 +16,8 @@ edr(
 )
 
 edr_only(x, window = 1, na_rm = FALSE)
+
+\method{print}{edr}(x, ...)
 }
 \arguments{
 \item{x}{\verb{[numeric]} - A vector of case numbers.}
@@ -38,6 +41,8 @@ is returned.}
 
 \item{alpha}{\verb{[numeric(1)]} - Alpha significance level. \cr
 The default is a 95\% (1 - 0.05) confidence interval.}
+
+\item{...}{Arguments passed onto \code{print.edr}.}
 }
 \value{
 \code{edr()} returns a \code{data.table} of case counts and EDR estimates,
