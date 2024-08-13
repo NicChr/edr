@@ -62,9 +62,19 @@ plot.edr <- function(x, include_cases = TRUE, ...){
       }
     )
   if (include_cases){
+    # Smallest difference between time points
+    t <- as.double(plot_data[["time"]])
+    d <- diff2(t)
+    bar_width <- min(d[which(d > sqrt(.Machine$double.eps))])
+    if (length(bar_width) == 0 || bar_width == 0 || is.infinite(bar_width) || is.na(bar_width)){
+      bar_width <- 1
+    }
+    
     edr_plot <- edr_plot +
       ggplot2::geom_col(ggplot2::aes(y = .data[["cases"]] / scale_factor), 
-                        width = 1, alpha = 0.4, fill = indigo) +
+                        # width = 1, 
+                        width = bar_width,
+                        alpha = 0.4, fill = indigo) +
       ggplot2::theme(
         axis.line.y.right = ggplot2::element_line(color = indigo),
         axis.ticks.y.right = ggplot2::element_line(color = indigo),

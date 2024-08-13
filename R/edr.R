@@ -89,7 +89,7 @@ edr <- function(x, window = 1, order_by = NULL,
       time <- time[o]
     }
   } else {
-   time <- seq_along(x) 
+   time <- index(x)
   }
   
   # EDR
@@ -165,5 +165,17 @@ is_sorted <- function(x){
 }
 check_alpha <- function(x){
   stopifnot(is.numeric(x) && length(x) == 1 && x >= 0 && x <= 1)
+}
+# All credits go to zoo and its authors
+index <- function(x){
+  if (!inherits(x, c("ts", "zoo"))){
+    seq_len(NROW(x))
+  } else {
+    xtsp <- stats::tsp(x)
+    seq(xtsp[1], xtsp[2], by = 1 / xtsp[3]) 
+  }
+}
+diff2 <- function(x, lag = 1){
+  unclass(x) - unclass(data.table::shift(x, n = lag, type = "lag"))
 }
 
